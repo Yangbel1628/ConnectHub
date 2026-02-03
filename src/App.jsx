@@ -1,5 +1,6 @@
+// src/App.jsx
 import { useState, useEffect } from "react";
-import { useAuth } from "./context/useAuth";
+import { useAuth } from "./context/AuthContext"; // <-- fixed import
 
 import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/HomePage";

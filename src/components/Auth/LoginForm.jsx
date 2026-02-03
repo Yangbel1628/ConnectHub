@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useAuth } from '../../context/useAuth';
-
+import { useAuth } from '../../context/AuthContext'; // make sure this points to your correct AuthContext
+import { useNavigate } from 'react-router-dom';
 
 export function LoginForm({ onToggle }) {
   const [email, setEmail] = useState('');
@@ -9,6 +9,7 @@ export function LoginForm({ onToggle }) {
   const [loading, setLoading] = useState(false);
 
   const { signIn } = useAuth();
+  const navigate = useNavigate(); // to redirect after login
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,6 +20,10 @@ export function LoginForm({ onToggle }) {
 
     if (result?.error) {
       setError(result.error);
+    } else {
+      // successful login
+      setError('');
+      navigate('/dashboard'); // redirect to dashboard or home
     }
 
     setLoading(false);
@@ -48,6 +53,7 @@ export function LoginForm({ onToggle }) {
             required
             placeholder="your@email.com"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={loading}
           />
         </div>
 
@@ -62,6 +68,7 @@ export function LoginForm({ onToggle }) {
             required
             placeholder="••••••••"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={loading}
           />
         </div>
 

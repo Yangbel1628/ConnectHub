@@ -1,18 +1,16 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../context/useAuth';
-import  RewardItemCard  from '../components/Reward/RewardItemCard';
-import { Award } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import RewardItemCard from "../components/Reward/RewardItemCard";
+import { Award } from "lucide-react";
 
 export function RewardsPage() {
   const { user, profile, refreshProfile } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Load rewards safely inside useEffect
   useEffect(() => {
     const loadRewards = () => {
-      const rewardsData = JSON.parse(localStorage.getItem('reward_items')) || [];
-      // Sort by points_cost ascending
+      const rewardsData = JSON.parse(localStorage.getItem("reward_items")) || [];
       rewardsData.sort((a, b) => a.points_cost - b.points_cost);
       setItems(rewardsData);
       setLoading(false);
@@ -28,12 +26,27 @@ export function RewardsPage() {
     if (!item) return;
 
     if (profile.reward_points < item.points_cost) {
-      alert('Not enough points!');
+      alert("Not enough points!");
       return;
     }
 
-    // Save redemption in localStorage
-    const redemptions = JSON.parse(localStorage.getItem('reward_redemptions')) || [];
+    // Deduct points and save updated profile
+    const updatedProfile = {
+      ...profile,
+      reward_points: profile.reward_points - item.points_cost,
+    };
+
+    const storedProfiles = JSON.parse(localStorage.getItem("profiles")) || [];
+    const otherProfiles = storedProfiles.filter((p) => p.id !== profile.id);
+    localStorage.setItem(
+      "profiles",
+      JSON.stringify([...otherProfiles, updatedProfile])
+    );
+
+    if (refreshProfile) refreshProfile(updatedProfile);
+
+    // Save redemption
+    const redemptions = JSON.parse(localStorage.getItem("reward_redemptions")) || [];
     const newRedemption = {
       id: Date.now().toString(),
       user_id: user.id,
@@ -41,29 +54,19 @@ export function RewardsPage() {
       points_spent: item.points_cost,
       redeemed_at: new Date().toISOString(),
     };
-    localStorage.setItem('reward_redemptions', JSON.stringify([...redemptions, newRedemption]));
-
-    // Deduct points from user profile
-    const updatedProfile = {
-      ...profile,
-      reward_points: profile.reward_points - item.points_cost,
-    };
-
-    // Save updated profile safely
-    const storedProfiles = JSON.parse(localStorage.getItem('profiles')) || [];
-    const otherProfiles = storedProfiles.filter(p => p.id !== profile.id);
-    localStorage.setItem('profiles', JSON.stringify([...otherProfiles, updatedProfile]));
-
-    if (refreshProfile) refreshProfile(updatedProfile);
+    localStorage.setItem(
+      "reward_redemptions",
+      JSON.stringify([...redemptions, newRedemption])
+    );
 
     // Reduce stock
     const updatedItems = items.map((i) =>
       i.id === itemId ? { ...i, stock: Math.max(0, i.stock - 1) } : i
     );
-    localStorage.setItem('reward_items', JSON.stringify(updatedItems));
+    localStorage.setItem("reward_items", JSON.stringify(updatedItems));
     setItems(updatedItems);
 
-    alert('Item redeemed successfully!');
+    alert("Item redeemed successfully!");
   };
 
   if (loading) {
@@ -88,7 +91,9 @@ export function RewardsPage() {
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-600">Your Points</p>
-            <p className="text-3xl font-bold text-blue-600">{profile?.reward_points || 0}</p>
+            <p className="text-3xl font-bold text-blue-600">
+              {profile?.reward_points || 0}
+            </p>
           </div>
         </div>
       </div>
@@ -113,4 +118,5 @@ export function RewardsPage() {
     </div>
   );
 }
-export default RewardsPage
+
+export default RewardsPage;

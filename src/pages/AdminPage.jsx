@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../context/useAuth';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { Shield, Users, FileText, TrendingUp } from 'lucide-react';
+import { AuthContext } from '../context/AuthContext';
 
-export function AdminPage() {
-  const { user } = useAuth();
+export default function AdminPage() {
+  const { user } = useContext(AuthContext);
 
   const isAdmin = user && user.email === 'demo@test.com';
 
@@ -22,34 +22,38 @@ export function AdminPage() {
     const eventsData = JSON.parse(localStorage.getItem('events') || '[]');
     const reportsData = JSON.parse(localStorage.getItem('reports') || '[]');
 
-    setReports(reportsData);
+    reportsData.sort(
+      (a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date)
+    );
 
-    setStats({
-      totalUsers: usersData.length,
-      totalPosts: postsData.length,
-      totalEvents: eventsData.length,
-      pendingReports: reportsData.filter(r => r.status === 'pending').length,
-    });
-
-    setLoading(false);
+    // Wrap in setTimeout to avoid calling setState synchronously in effect
+    setTimeout(() => {
+      setReports(reportsData);
+      setStats({
+        totalUsers: usersData.length,
+        totalPosts: postsData.length,
+        totalEvents: eventsData.length,
+        pendingReports: reportsData.filter((r) => r.status === 'pending').length,
+      });
+      setLoading(false);
+    }, 0);
   }, []);
 
   useEffect(() => {
-    const init = () => {
-      if (!isAdmin) {
-        setLoading(false);
-        return;
-      }
-      fetchAdminData();
-    };
+    if (!isAdmin) {
+      setTimeout(() => setLoading(false), 0);
+      return;
+    }
 
-    init();
+    fetchAdminData();
   }, [isAdmin, fetchAdminData]);
 
   const handleResolveReport = (reportId) => {
+    if (!window.confirm('Mark this report as resolved?')) return;
+
     const reportsData = JSON.parse(localStorage.getItem('reports') || '[]');
 
-    const updatedReports = reportsData.map(r =>
+    const updatedReports = reportsData.map((r) =>
       r.id === reportId
         ? { ...r, status: 'resolved', resolved_at: new Date().toISOString() }
         : r
@@ -69,16 +73,15 @@ export function AdminPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-gray-600">Loading admin panel...</div>
+      <div className="flex justify-center items-center h-64 text-gray-600">
+        Loading admin panel...
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Stats */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div className="max-w-6xl mx-auto p-4 space-y-6">
+      <div className="bg-white rounded-lg shadow-md p-6">
         <div className="flex items-center gap-3 mb-6">
           <Shield size={32} className="text-blue-600" />
           <div>
@@ -87,7 +90,7 @@ export function AdminPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <Stat label="Total Users" value={stats.totalUsers} color="blue" Icon={Users} />
           <Stat label="Total Posts" value={stats.totalPosts} color="green" Icon={FileText} />
           <Stat label="Total Events" value={stats.totalEvents} color="yellow" Icon={TrendingUp} />
@@ -95,28 +98,45 @@ export function AdminPage() {
         </div>
       </div>
 
-      {/* Reports */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Reports</h2>
 
         {reports.length === 0 ? (
           <p className="text-gray-600 text-center py-8">No reports found</p>
         ) : (
-          reports.map(report => (
-            <div key={report.id} className="border rounded-lg p-4 mb-3">
-              <p className="font-semibold">Reason: {report.reason}</p>
-              <p className="text-sm text-gray-600">Status: {report.status}</p>
+          <div className="space-y-3">
+            {reports.map((report) => (
+              <div
+                key={report.id}
+                className={`border rounded-lg p-4 flex flex-col md:flex-row justify-between items-start md:items-center transition hover:shadow-sm ${
+                  report.status === 'pending' ? 'border-red-400' : 'border-gray-300 bg-gray-50'
+                }`}
+              >
+                <div className="flex-1 mb-2 md:mb-0">
+                  <p className="font-semibold text-gray-800">Reason: {report.reason}</p>
+                  <p className="text-sm text-gray-600">
+                    Status:{' '}
+                    <span
+                      className={`font-medium ${
+                        report.status === 'pending' ? 'text-red-600' : 'text-green-600'
+                      }`}
+                    >
+                      {report.status}
+                    </span>
+                  </p>
+                </div>
 
-              {report.status === 'pending' && (
-                <button
-                  onClick={() => handleResolveReport(report.id)}
-                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg"
-                >
-                  Resolve
-                </button>
-              )}
-            </div>
-          ))
+                {report.status === 'pending' && (
+                  <button
+                    onClick={() => handleResolveReport(report.id)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  >
+                    Resolve
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -124,7 +144,7 @@ export function AdminPage() {
 }
 
 function Stat({ label, value, Icon: StatIcon, color }) {
-  const colors = { 
+  const colors = {
     blue: { bg: 'bg-blue-50', text: 'text-blue-600' },
     green: { bg: 'bg-green-50', text: 'text-green-600' },
     yellow: { bg: 'bg-yellow-50', text: 'text-yellow-600' },
@@ -132,7 +152,9 @@ function Stat({ label, value, Icon: StatIcon, color }) {
   };
 
   return (
-    <div className={`${colors[color].bg} p-4 rounded-lg flex justify-between`}>
+    <div
+      className={`${colors[color].bg} p-4 rounded-lg flex justify-between items-center hover:shadow-sm transition`}
+    >
       <div>
         <p className="text-sm text-gray-600">{label}</p>
         <p className={`text-2xl font-bold ${colors[color].text}`}>{value}</p>
@@ -141,4 +163,3 @@ function Stat({ label, value, Icon: StatIcon, color }) {
     </div>
   );
 }
-export default AdminPage

@@ -1,93 +1,100 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../context/useAuth';
-import  PostCard  from '../components/Post/PostCard';
-import { PlusCircle } from 'lucide-react';
-import { setCurrentPage } from './navigation';
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import PostCard from "../components/Post/PostCard";
+import { PlusCircle } from "lucide-react";
+import { setCurrentPage } from "./navigation";
 
 export function HomePage() {
-  const [postsRaw, setPostsRaw] = useState([]);
+  const { user, token } = useAuth();
+  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
-  // Sort posts by date using useMemo
-  const posts = useMemo(() => {
-    return [...postsRaw].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  }, [postsRaw]);
-
-  // Load posts safely inside useEffect
+  // Fetch posts
   useEffect(() => {
-    const loadPosts = () => {
-      const postsData = JSON.parse(localStorage.getItem('posts')) || [];
-      setPostsRaw(postsData);
-      setLoading(false);
+    if (!token) return;
+
+    const fetchPosts = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/posts", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setPosts(Array.isArray(data)
+          ? data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          : []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    loadPosts();
-  }, []);
+    fetchPosts();
+  }, [token]);
 
-  const handleLike = (postId) => {
-    if (!user) return;
-
-    const likes = JSON.parse(localStorage.getItem('post_likes')) || [];
-    const existingLike = likes.find(
-      (l) => l.post_id === postId && l.user_id === user.id
-    );
-
-    let updatedLikes;
-    if (existingLike) {
-      updatedLikes = likes.filter((l) => l.id !== existingLike.id);
-    } else {
-      const newLike = {
-        id: Date.now().toString(),
-        post_id: postId,
-        user_id: user.id,
-      };
-      updatedLikes = [...likes, newLike];
+  // Like post
+  const handleLike = async (postId) => {
+    if (!token) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/posts/${postId}/like`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const updated = await res.json();
+      setPosts(prev =>
+        prev.map(p => p._id === postId ? { ...p, likes_count: updated.likes_count } : p)
+      );
+    } catch (err) {
+      console.error(err);
     }
-
-    localStorage.setItem('post_likes', JSON.stringify(updatedLikes));
-
-    // Update likes_count in posts
-    const postsData = JSON.parse(localStorage.getItem('posts')) || [];
-    const updatedPosts = postsData.map((p) => {
-      if (p.id === postId) {
-        const count = updatedLikes.filter((l) => l.post_id === postId).length;
-        return { ...p, likes_count: count };
-      }
-      return p;
-    });
-    localStorage.setItem('posts', JSON.stringify(updatedPosts));
-    setPostsRaw(updatedPosts);
   };
 
-  const handleComment = (postId) => {
-    console.log('Comment on post:', postId);
+  // Add comment
+  const handleComment = async (postId, text) => {
+    if (!token || !text.trim()) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/posts/${postId}/comment`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text }),
+      });
+      const newComment = await res.json();
+
+      // Update post in state with new comment
+      setPosts(prev =>
+        prev.map(p =>
+          p._id === postId
+            ? { ...p, comments: [...(p.comments || []), newComment] }
+            : p
+        )
+      );
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-gray-600">Loading posts...</div>
-      </div>
-    );
-  }
+  if (loading) return <div className="text-center p-6">Loading posts...</div>;
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Create post area */}
+      {/* Create post box */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+          <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
             {user?.email?.[0]?.toUpperCase()}
           </div>
           <button
-            onClick={() => setCurrentPage('create-post')}
+            onClick={() => setCurrentPage("create-post")}
             className="flex-1 text-left px-4 py-3 bg-gray-100 rounded-full text-gray-600 hover:bg-gray-200 transition-colors"
           >
             What's on your mind?
           </button>
           <button
-            onClick={() => setCurrentPage('create-post')}
+            onClick={() => setCurrentPage("create-post")}
             className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 active:scale-95 transition-all duration-150"
           >
             <PlusCircle size={24} />
@@ -95,22 +102,23 @@ export function HomePage() {
         </div>
       </div>
 
-      {/* Posts */}
+      {/* Posts list */}
       {posts.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow-md">
-          <p className="text-gray-600">No posts yet. Be the first to share something!</p>
+          <p className="text-gray-600">No posts yet.</p>
         </div>
       ) : (
-        posts.map((post) => (
+        posts.map(post => (
           <PostCard
-            key={post.id}
+            key={post._id}
             post={post}
             onLike={handleLike}
-            onComment={handleComment}
+            onComment={handleComment} // unified comment handler
           />
         ))
       )}
     </div>
   );
 }
-export default HomePage
+
+export default HomePage;

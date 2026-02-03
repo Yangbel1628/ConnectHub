@@ -5,65 +5,69 @@ export function EventCard({ event, onBook }) {
     event.max_participants &&
     event.current_participants >= event.max_participants;
 
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-4">
-      <div className="flex justify-between items-start mb-4">
-        <h3 className="text-xl font-bold text-gray-800">
-          {event.title}
-        </h3>
+  const statusColors = {
+    upcoming: 'bg-green-100 text-green-800',
+    ongoing: 'bg-blue-100 text-blue-800',
+    past: 'bg-gray-100 text-gray-800',
+  };
 
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6 mb-4 hover:shadow-lg transition-shadow">
+      {/* Header */}
+      <div className="flex justify-between items-start mb-4">
+        <h3 className="text-xl font-bold text-gray-800">{event.title}</h3>
         <span
           className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            event.status === 'upcoming'
-              ? 'bg-green-100 text-green-800'
-              : event.status === 'ongoing'
-              ? 'bg-blue-100 text-blue-800'
-              : 'bg-gray-100 text-gray-800'
+            statusColors[event.status] || statusColors['past']
           }`}
         >
           {event.status}
         </span>
       </div>
 
+      {/* Description */}
       {event.description && (
-        <p className="text-gray-600 mb-4">
-          {event.description}
-        </p>
+        <p className="text-gray-600 mb-4">{event.description}</p>
       )}
 
-      <div className="space-y-2 mb-4">
-        <div className="flex items-center text-gray-700">
-          <Calendar size={18} className="mr-2 text-blue-600" />
-          <span className="text-sm">
+      {/* Info */}
+      <div className="space-y-2 mb-4 text-gray-700 text-sm">
+        {event.event_date && (
+          <div className="flex items-center">
+            <Calendar size={18} className="mr-2 text-blue-600" />
             {new Date(event.event_date).toLocaleString()}
-          </span>
-        </div>
-
-        <div className="flex items-center text-gray-700">
-          <MapPin size={18} className="mr-2 text-red-600" />
-          <span className="text-sm">{event.location}</span>
-        </div>
-
+          </div>
+        )}
+        {event.location && (
+          <div className="flex items-center">
+            <MapPin size={18} className="mr-2 text-red-600" />
+            {event.location}
+          </div>
+        )}
         {event.max_participants && (
-          <div className="flex items-center text-gray-700">
+          <div className="flex items-center">
             <Users size={18} className="mr-2 text-green-600" />
-            <span className="text-sm">
-              {event.current_participants} / {event.max_participants} participants
-            </span>
+            {event.current_participants} / {event.max_participants} participants
           </div>
         )}
       </div>
 
+      {/* Category */}
       {event.category && (
         <span className="inline-block mb-4 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
           {event.category}
         </span>
       )}
 
+      {/* Book Button */}
       <button
         onClick={() => onBook(event.id)}
         disabled={isFull || event.status !== 'upcoming'}
-        className="w-full bg-blue-600 text-white py-2 rounded-lg disabled:bg-gray-300"
+        className={`w-full py-2 rounded-lg text-white transition-colors font-medium ${
+          isFull || event.status !== 'upcoming'
+            ? 'bg-gray-300 cursor-not-allowed'
+            : 'bg-blue-600 hover:bg-blue-700'
+        }`}
       >
         {isFull
           ? 'Event Full'

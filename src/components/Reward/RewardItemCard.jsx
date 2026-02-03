@@ -5,10 +5,10 @@ function RewardItemCard({ item, userPoints, onRedeem }) {
   const inStock = item.stock > 0;
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow flex flex-col justify-between">
       
       {/* Image / Icon */}
-      <div className="flex items-center justify-center mb-4 h-32 bg-blue-100 rounded-lg">
+      <div className="flex items-center justify-center mb-4 h-32 bg-blue-100 rounded-lg overflow-hidden">
         {item.image ? (
           <img
             src={item.image}
@@ -20,24 +20,18 @@ function RewardItemCard({ item, userPoints, onRedeem }) {
         )}
       </div>
 
-      {/* Name */}
-      <h3 className="text-lg font-bold text-gray-800 mb-2">
-        {item.name}
-      </h3>
-
-      {/* Description */}
-      {item.description && (
-        <p className="text-sm text-gray-600 mb-4">
-          {item.description}
-        </p>
-      )}
+      {/* Name & Description */}
+      <div className="mb-4">
+        <h3 className="text-lg font-bold text-gray-800 mb-1">{item.name}</h3>
+        {item.description && (
+          <p className="text-sm text-gray-600">{item.description}</p>
+        )}
+      </div>
 
       {/* Points & Stock */}
-      <div className="flex justify-between items-center mb-4">
-        <span className="text-xl font-bold text-blue-600">
-          {item.points} pts
-        </span>
-        <span className="text-sm text-gray-500">
+      <div className="flex justify-between items-center mb-4 text-sm">
+        <span className="font-semibold text-blue-600">{item.points} pts</span>
+        <span className={`text-gray-500 ${inStock ? "" : "line-through"}`}>
           Stock: {item.stock}
         </span>
       </div>
@@ -46,7 +40,11 @@ function RewardItemCard({ item, userPoints, onRedeem }) {
       <button
         onClick={() => onRedeem(item.id)}
         disabled={!canAfford || !inStock}
-        className="w-full bg-blue-600 text-white py-2 rounded-lg disabled:bg-gray-300"
+        className={`w-full py-2 rounded-lg text-white font-medium transition-colors ${
+          !inStock || !canAfford
+            ? "bg-gray-300 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700"
+        }`}
       >
         {!inStock
           ? "Out of Stock"

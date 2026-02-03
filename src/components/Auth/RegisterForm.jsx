@@ -1,24 +1,30 @@
 import { useState } from 'react';
-import { useAuth } from '../../context/useAuth'; // <-- corrected import
+import { useAuth } from '../../context/AuthContext'; // make sure this is correct
+import { useNavigate } from 'react-router-dom';
 
 export function RegisterForm({ onToggle }) {
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const { signUp } = useAuth(); // from AuthProvider
+  const navigate = useNavigate(); // redirect after signup
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    const result = await signUp(email, password, fullName);
+    const result = await signUp(fullName, email, password);
 
     if (result?.error) {
       setError(result.error);
+    } else {
+      // successful registration
+      setError('');
+      navigate('/dashboard'); // redirect to dashboard/home
     }
 
     setLoading(false);
@@ -31,7 +37,7 @@ export function RegisterForm({ onToggle }) {
       </h2>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
           {error}
         </div>
       )}
@@ -46,8 +52,9 @@ export function RegisterForm({ onToggle }) {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
-            className="w-full px-4 py-2 border rounded-lg"
             placeholder="John Doe"
+            disabled={loading}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
 
@@ -60,8 +67,9 @@ export function RegisterForm({ onToggle }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-4 py-2 border rounded-lg"
             placeholder="example@gmail.com"
+            disabled={loading}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
 
@@ -74,15 +82,16 @@ export function RegisterForm({ onToggle }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full px-4 py-2 border rounded-lg"
-            placeholder="******"
+            placeholder="••••••"
+            disabled={loading}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg"
+          className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors font-medium"
         >
           {loading ? 'Creating...' : 'Sign Up'}
         </button>
@@ -92,7 +101,7 @@ export function RegisterForm({ onToggle }) {
         Already have an account?{' '}
         <button
           onClick={onToggle}
-          className="text-blue-600 underline"
+          className="text-blue-600 hover:text-blue-700 font-medium"
         >
           Sign In
         </button>

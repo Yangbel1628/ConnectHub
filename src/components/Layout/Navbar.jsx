@@ -1,5 +1,5 @@
-import { Home, Calendar, Award, User, PlusCircle, Shield, LogOut } from "lucide-react";
-import { useAuth } from "../../context/useAuth";
+import {Home,Calendar,Award,User,PlusCircle,Shield,LogOut,} from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 function Navbar({ currentPage, onNavigate }) {
   const { signOut, profile, isAdmin } = useAuth();
@@ -24,7 +24,7 @@ function Navbar({ currentPage, onNavigate }) {
             <span className="text-xl font-bold text-gray-800">ConnectHub</span>
           </div>
 
-          {/* Navigation */}
+          {/* Navigation Buttons */}
           <div className="flex items-center gap-2">
             {navItems.map((item) => (
               <button
@@ -50,7 +50,7 @@ function Navbar({ currentPage, onNavigate }) {
               <span className="hidden md:inline">Create</span>
             </button>
 
-            {/* Admin */}
+            {/* Admin (conditionally) */}
             {isAdmin && (
               <button
                 onClick={() => onNavigate("admin")}
@@ -75,7 +75,7 @@ function Navbar({ currentPage, onNavigate }) {
             </button>
           </div>
 
-          {/* Points */}
+          {/* Reward Points */}
           {profile && (
             <div className="hidden lg:flex items-center gap-2 ml-4">
               <Award size={18} className="text-yellow-500" />

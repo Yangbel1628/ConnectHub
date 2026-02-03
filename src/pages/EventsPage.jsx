@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../context/useAuth';
-import { EventCard } from '../components/Event/EventCard';
-import { Calendar } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext"; // Make sure it points to your AuthContext
+import { EventCard } from "../components/Event/EventCard";
+import { Calendar } from "lucide-react";
 
 export function EventsPage() {
   const [events, setEvents] = useState([]);
@@ -9,8 +9,9 @@ export function EventsPage() {
   const { user } = useAuth();
 
   useEffect(() => {
+    // Load events from localStorage
     const loadEvents = () => {
-      const eventsData = JSON.parse(localStorage.getItem('events')) || [];
+      const eventsData = JSON.parse(localStorage.getItem("events")) || [];
       setEvents(eventsData);
       setLoading(false);
     };
@@ -21,28 +22,29 @@ export function EventsPage() {
   const handleBook = (eventId) => {
     if (!user) return;
 
-    const bookings = JSON.parse(localStorage.getItem('event_bookings')) || [];
+    const bookings = JSON.parse(localStorage.getItem("event_bookings")) || [];
 
     const alreadyBooked = bookings.find(
-      (b) => b.event_id === eventId && b.user_id === user.id
+      (b) => b.event_id === eventId && b.user_id === user._id // use user._id from AuthContext
     );
     if (alreadyBooked) return;
 
     bookings.push({
       id: Date.now().toString(),
       event_id: eventId,
-      user_id: user.id,
+      user_id: user._id, // consistent with AuthContext
       booked_at: new Date().toISOString(),
     });
-    localStorage.setItem('event_bookings', JSON.stringify(bookings));
+    localStorage.setItem("event_bookings", JSON.stringify(bookings));
 
-    const eventsData = JSON.parse(localStorage.getItem('events')) || [];
+    // Update event participant count
+    const eventsData = JSON.parse(localStorage.getItem("events")) || [];
     const updatedEvents = eventsData.map((e) =>
       e.id === eventId
         ? { ...e, current_participants: (e.current_participants || 0) + 1 }
         : e
     );
-    localStorage.setItem('events', JSON.stringify(updatedEvents));
+    localStorage.setItem("events", JSON.stringify(updatedEvents));
 
     setEvents(updatedEvents);
   };
@@ -56,7 +58,8 @@ export function EventsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto py-8 px-4">
+      {/* Header */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="flex items-center gap-3">
           <Calendar size={32} className="text-blue-600" />
@@ -67,6 +70,7 @@ export function EventsPage() {
         </div>
       </div>
 
+      {/* Events list */}
       {events.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow-md">
           <p className="text-gray-600">No events available at the moment.</p>
@@ -81,4 +85,5 @@ export function EventsPage() {
     </div>
   );
 }
-export default EventsPage
+
+export default EventsPage;
